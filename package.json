@@ -1,0 +1,28 @@
+{
+  "name": "lua-obfuscator",
+  "version": "1.0.0",
+  "description": "Advanced Lua Code Obfuscator - KuramaMods",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod",
+    "start": "npx serve",
+    "test": "node api/obfuscate.js"
+  },
+  "keywords": [
+    "lua",
+    "obfuscator",
+    "obfuscation",
+    "code-protection",
+    "security",
+    "kuramods"
+  ],
+  "author": "KuramaMods",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "devDependencies": {
+    "serve": "^14.2.0"
+  }
+}
