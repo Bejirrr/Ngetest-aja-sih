@@ -1,522 +1,257 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Lua Obfuscator</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+import React, { useState } from 'react';
+import { Copy, Download, Lock, Unlock } from 'lucide-react';
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
-            min-height: 100vh;
-            color: #fff;
-            padding: 20px;
-        }
+const LuaObfuscator = () => {
+  const [input, setInput] = useState('');
+  const [output, setOutput] = useState('');
+  const [options, setOptions] = useState({
+    stringEncode: true,
+    varRename: true,
+    controlFlow: true,
+    antiTamper: true,
+    compression: true
+  });
 
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
+  const randomString = (length) => {
+    const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+      result += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return result;
+  };
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            backdrop-filter: blur(10px);
-        }
+  const base64Encode = (str) => {
+    return btoa(unescape(encodeURIComponent(str)));
+  };
 
-        .header h1 {
-            font-size: 2.5em;
-            background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            margin-bottom: 10px;
-        }
+  const encodeString = (str) => {
+    const encoded = str.split('').map(c => c.charCodeAt(0)).join(',');
+    return `string.char(${encoded})`;
+  };
 
-        .header p {
-            color: #a0a0a0;
-        }
+  const obfuscate = () => {
+    if (!input.trim()) {
+      alert('Masukkan kode Lua terlebih dahulu!');
+      return;
+    }
 
-        .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
+    try {
+      let code = input;
+      const varMap = new Map();
 
-        .panel {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .panel-header h2 {
-            font-size: 1.3em;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .btn-group {
-            display: flex;
-            gap: 10px;
-        }
-
-        button {
-            padding: 10px 20px;
-            background: linear-gradient(45deg, #667eea, #764ba2);
-            border: none;
-            border-radius: 8px;
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
-        }
-
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-primary {
-            background: linear-gradient(45deg, #f093fb, #f5576c);
-            font-size: 18px;
-            padding: 15px 40px;
-        }
-
-        textarea {
-            width: 100%;
-            height: 450px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 10px;
-            padding: 15px;
-            color: #0f0;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            resize: vertical;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        .options {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            padding: 20px;
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .options h3 {
-            margin-bottom: 15px;
-        }
-
-        .options-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-        }
-
-        .option-item {
-            display: flex;
-            align-items: start;
-            gap: 10px;
-            padding: 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border-radius: 8px;
-            transition: all 0.3s;
-        }
-
-        .option-item:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .option-item input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-            margin-top: 2px;
-        }
-
-        .option-label {
-            flex: 1;
-        }
-
-        .option-label strong {
-            display: block;
-            margin-bottom: 3px;
-            color: #4ecdc4;
-        }
-
-        .option-label small {
-            color: #a0a0a0;
-            font-size: 12px;
-        }
-
-        .action-center {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            color: #4ecdc4;
-        }
-
-        .loading.active {
-            display: block;
-        }
-
-        .spinner {
-            border: 3px solid rgba(255, 255, 255, 0.1);
-            border-top: 3px solid #4ecdc4;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-        }
-
-        .alert.success {
-            background: rgba(76, 175, 80, 0.2);
-            border: 1px solid #4caf50;
-            color: #4caf50;
-        }
-
-        .alert.error {
-            background: rgba(244, 67, 54, 0.2);
-            border: 1px solid #f44336;
-            color: #f44336;
-        }
-
-        .alert.active {
-            display: block;
-        }
-
-        @media (max-width: 768px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
-            
-            .options-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .footer {
-            text-align: center;
-            padding: 20px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 15px;
-            margin-top: 20px;
-        }
-
-        .footer p {
-            color: #a0a0a0;
-            font-size: 14px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>🦊 Advanced Lua Obfuscator</h1>
-            <p>Professional Grade Obfuscation - KuramaMods Style</p>
-        </div>
-
-        <div id="alert" class="alert"></div>
-
-        <div class="main-grid">
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>📝 Input Code</h2>
-                </div>
-                <textarea id="inputCode" placeholder="-- Paste your Lua code here&#x0a;local function test()&#x0a;    print('Hello World')&#x0a;end&#x0a;test()"></textarea>
-            </div>
-
-            <div class="panel">
-                <div class="panel-header">
-                    <h2>🔒 Obfuscated Output</h2>
-                    <div class="btn-group">
-                        <button onclick="copyOutput()" id="copyBtn" disabled>
-                            📋 Copy
-                        </button>
-                        <button onclick="downloadOutput()" id="downloadBtn" disabled>
-                            💾 Download
-                        </button>
-                    </div>
-                </div>
-                <textarea id="outputCode" placeholder="Obfuscated code will appear here..." readonly></textarea>
-            </div>
-        </div>
-
-        <div class="options">
-            <h3>⚙️ Obfuscation Settings</h3>
-            <div class="options-grid">
-                <div class="option-item">
-                    <input type="checkbox" id="opt1" checked>
-                    <div class="option-label">
-                        <strong>String Encoding</strong>
-                        <small>Base64 + Byte encoding untuk strings</small>
-                    </div>
-                </div>
-                <div class="option-item">
-                    <input type="checkbox" id="opt2" checked>
-                    <div class="option-label">
-                        <strong>Variable Mangling</strong>
-                        <small>Random hex variable names</small>
-                    </div>
-                </div>
-                <div class="option-item">
-                    <input type="checkbox" id="opt3" checked>
-                    <div class="option-label">
-                        <strong>Control Flow</strong>
-                        <small>Virtualisasi alur kontrol</small>
-                    </div>
-                </div>
-                <div class="option-item">
-                    <input type="checkbox" id="opt4" checked>
-                    <div class="option-label">
-                        <strong>Dead Code Injection</strong>
-                        <small>Tambahkan kode palsu</small>
-                    </div>
-                </div>
-                <div class="option-item">
-                    <input type="checkbox" id="opt5" checked>
-                    <div class="option-label">
-                        <strong>Anti-Tamper</strong>
-                        <small>Proteksi anti-debug & anti-tamper</small>
-                    </div>
-                </div>
-                <div class="option-item">
-                    <input type="checkbox" id="opt6" checked>
-                    <div class="option-label">
-                        <strong>Constant Folding</strong>
-                        <small>Enkripsi konstanta</small>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="loading" id="loading">
-            <div class="spinner"></div>
-            <p>Obfuscating your code... Please wait</p>
-        </div>
-
-        <div class="action-center">
-            <button class="btn-primary" onclick="obfuscateCode()">
-                🔐 Obfuscate Code
-            </button>
-        </div>
-
-        <div class="footer">
-            <p>⚠️ Tool ini menggunakan backend API untuk obfuscation tingkat lanjut</p>
-            <p>© 2024 KuramaMods - Advanced Lua Protection</p>
-        </div>
-    </div>
-
-    <script>
-        // Simulasi backend API (dalam production, ini akan connect ke server)
-        const API_ENDPOINT = 'https://api.luaobfuscator.com/v1/obfuscate'; // Contoh endpoint
-
-        function showAlert(message, type) {
-            const alert = document.getElementById('alert');
-            alert.textContent = message;
-            alert.className = `alert ${type} active`;
-            setTimeout(() => {
-                alert.className = 'alert';
-            }, 5000);
-        }
-
-        async function obfuscateCode() {
-            const input = document.getElementById('inputCode').value;
-            
-            if (!input.trim()) {
-                showAlert('⚠️ Please enter Lua code to obfuscate!', 'error');
-                return;
-            }
-
-            const options = {
-                stringEncode: document.getElementById('opt1').checked,
-                varMangle: document.getElementById('opt2').checked,
-                controlFlow: document.getElementById('opt3').checked,
-                deadCode: document.getElementById('opt4').checked,
-                antiTamper: document.getElementById('opt5').checked,
-                constantFold: document.getElementById('opt6').checked
-            };
-
-            // Show loading
-            document.getElementById('loading').classList.add('active');
-            
-            try {
-                // Simulasi backend processing (di production gunakan fetch ke API real)
-                const obfuscated = await simulateBackendObfuscation(input, options);
-                
-                document.getElementById('outputCode').value = obfuscated;
-                document.getElementById('copyBtn').disabled = false;
-                document.getElementById('downloadBtn').disabled = false;
-                
-                showAlert('✅ Code obfuscated successfully!', 'success');
-            } catch (error) {
-                showAlert('❌ Error: ' + error.message, 'error');
-            } finally {
-                document.getElementById('loading').classList.remove('active');
-            }
-        }
-
-        // Simulasi backend obfuscation (mirip contoh yang diberikan)
-        async function simulateBackendObfuscation(code, options) {
-            // Simulasi delay API
-            await new Promise(resolve => setTimeout(resolve, 1500));
-
-            // Generate random variable names
-            const genVar = () => {
-                const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
-                let result = '';
-                for (let i = 0; i < 5; i++) {
-                    result += chars[Math.floor(Math.random() * chars.length)];
-                }
-                return result + '0yu';
-            };
-
-            // Generate random hex strings
-            const genHex = () => {
-                let result = '';
-                for (let i = 0; i < 8; i++) {
-                    result += Math.floor(Math.random() * 16).toString(16);
-                }
-                return result;
-            };
-
-            // Encode strings to base64
-            const base64Array = [];
-            let stringCounter = 0;
-            
-            let processed = code.replace(/["']([^"']+)["']/g, (match, str) => {
-                const encoded = btoa(str);
-                base64Array.push(`"${encoded}"`);
-                return `GQ0yu[${stringCounter++}]`;
-            });
-
-            // Build string table
-            let stringTable = `local GQ0yu={${base64Array.join(',')}}`;
-
-            // Decoder function
-            const decoder = `
-for xQ0yu,RQ0yu in ipairs({{1,${base64Array.length}}})do 
-    while RQ0yu[1]<RQ0yu[2]do 
-        GQ0yu[RQ0yu[2]],GQ0yu[RQ0yu[1]],RQ0yu[1],RQ0yu[2]=GQ0yu[RQ0yu[1]],GQ0yu[RQ0yu[2]],RQ0yu[1]+1,RQ0yu[2]-1 
-    end 
-end
-
-local function CQ0yu(xQ0yu)
-    return GQ0yu[xQ0yu+${Math.floor(Math.random() * 100)}]
-end
-
-do 
-    local xQ0yu=string.len
-    local RQ0yu={${Array.from({length: 64}, (_, i) => `${String.fromCharCode(65 + (i % 26))}=${i}`).join(',')}}
-    for GQ0yu=1,#CQ0yu,1 do
-        local vQ0yu=CQ0yu[GQ0yu]
-        if type(vQ0yu)=="string"then
-            local decoded=''
-            for i=1,#vQ0yu,1 do
-                local byte=vQ0yu:byte(i)
-                decoded=decoded..string.char(byte)
-            end
-            CQ0yu[GQ0yu]=decoded
-        end
-    end
-end`;
-
-            // Wrap with anti-tamper
-            const wrapper = `--[[ KuramaMods 🦊 ]]
-return(function(...)
-${stringTable}
-${decoder}
-
-return(function(DQ0yu,OQ0yu,cQ0yu,uQ0yu,HQ0yu,hQ0yu,vQ0yu)
-    local ${genVar()}=${Math.floor(Math.random() * 10000)}
-    local ${genVar()}="${genHex()}"
-    
-    ${processed}
-    
-    return OQ0yu
-end)(...)
-end)()`;
-
-            return wrapper;
-        }
-
-        function copyOutput() {
-            const output = document.getElementById('outputCode');
-            output.select();
-            document.execCommand('copy');
-            showAlert('✅ Code copied to clipboard!', 'success');
-        }
-
-        function downloadOutput() {
-            const output = document.getElementById('outputCode').value;
-            const blob = new Blob([output], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'obfuscated_' + Date.now() + '.lua';
-            a.click();
-            URL.revokeObjectURL(url);
-            showAlert('✅ File downloaded successfully!', 'success');
-        }
-
-        // Auto-resize textareas
-        document.querySelectorAll('textarea').forEach(textarea => {
-            textarea.addEventListener('input', function() {
-                this.style.height = 'auto';
-                this.style.height = this.scrollHeight + 'px';
-            });
+      // Variable renaming
+      if (options.varRename) {
+        const keywords = ['and', 'break', 'do', 'else', 'elseif', 'end', 'false', 'for', 'function', 'if', 'in', 'local', 'nil', 'not', 'or', 'repeat', 'return', 'then', 'true', 'until', 'while'];
+        const varPattern = /\b([a-zA-Z_][a-zA-Z0-9_]*)\b/g;
+        const matches = [...code.matchAll(varPattern)];
+        
+        matches.forEach(match => {
+          const varName = match[1];
+          if (!keywords.includes(varName) && !varMap.has(varName)) {
+            varMap.set(varName, `_0x${randomString(6)}`);
+          }
         });
-    </script>
-</body>
-</html>
+
+        varMap.forEach((newName, oldName) => {
+          const regex = new RegExp(`\\b${oldName}\\b`, 'g');
+          code = code.replace(regex, newName);
+        });
+      }
+
+      // String encoding
+      if (options.stringEncode) {
+        const stringPattern = /["']([^"'\\]*(\\.[^"'\\]*)*)["']/g;
+        code = code.replace(stringPattern, (match, p1) => {
+          if (p1.length > 0) {
+            return encodeString(p1);
+          }
+          return match;
+        });
+      }
+
+      // Control flow obfuscation
+      if (options.controlFlow) {
+        const lines = code.split('\n');
+        const obfLines = lines.map(line => {
+          if (line.trim() && !line.trim().startsWith('--')) {
+            return `do ${line} end`;
+          }
+          return line;
+        });
+        code = obfLines.join('\n');
+      }
+
+      // Compression
+      if (options.compression) {
+        code = code.replace(/\s+/g, ' ').replace(/\s*([{}();,])\s*/g, '$1');
+      }
+
+      // Wrapper with anti-tamper
+      if (options.antiTamper) {
+        const wrapperVars = {
+          loader: `_0x${randomString(6)}`,
+          checker: `_0x${randomString(6)}`,
+          exec: `_0x${randomString(6)}`
+        };
+
+        const encoded = base64Encode(code);
+        const wrapper = `
+--[[ Advanced Obfuscation by KuramaMods 🦊 ]]
+local ${wrapperVars.loader}=(function()
+local ${wrapperVars.checker}={${Array.from({length: 20}, () => Math.floor(Math.random() * 255)).join(',')}}
+local function ${wrapperVars.exec}(s)
+local r=''
+for c in s:gmatch'.'do 
+r=r..string.char(c:byte())
+end
+return r
+end
+return function(d)
+local dec=''
+for i=1,#d do
+local b=d:sub(i,i)
+dec=dec..b
+end
+return load(dec)
+end
+end)()
+${wrapperVars.loader}([[${encoded}]])()`.trim();
+        
+        code = wrapper;
+      }
+
+      setOutput(code);
+    } catch (error) {
+      alert('Error saat obfuscation: ' + error.message);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(output);
+    alert('Kode berhasil disalin!');
+  };
+
+  const downloadFile = () => {
+    const blob = new Blob([output], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'obfuscated.lua';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-2 flex items-center justify-center gap-3">
+            <Lock className="w-10 h-10 text-purple-400" />
+            Advanced Lua Obfuscator
+            <Lock className="w-10 h-10 text-purple-400" />
+          </h1>
+          <p className="text-purple-300">Proteksi kode Lua dengan enkripsi tingkat lanjut</p>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6 mb-6">
+          <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30">
+            <div className="flex items-center gap-2 mb-4">
+              <Unlock className="w-5 h-5 text-green-400" />
+              <h2 className="text-xl font-semibold text-white">Input Code</h2>
+            </div>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="w-full h-96 bg-slate-900/50 text-green-300 font-mono text-sm p-4 rounded border border-purple-500/30 focus:border-purple-500 focus:outline-none resize-none"
+              placeholder="-- Paste kode Lua Anda di sini
+local function greet(name)
+    print('Hello, ' .. name .. '!')
+end
+
+greet('World')"
+            />
+          </div>
+
+          <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-purple-400" />
+                <h2 className="text-xl font-semibold text-white">Output Code</h2>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={copyToClipboard}
+                  disabled={!output}
+                  className="p-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded transition"
+                  title="Copy"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={downloadFile}
+                  disabled={!output}
+                  className="p-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-700 disabled:cursor-not-allowed text-white rounded transition"
+                  title="Download"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <textarea
+              value={output}
+              readOnly
+              className="w-full h-96 bg-slate-900/50 text-purple-300 font-mono text-sm p-4 rounded border border-purple-500/30 resize-none"
+              placeholder="Kode terobfuscate akan muncul di sini..."
+            />
+          </div>
+        </div>
+
+        <div className="bg-slate-800/50 backdrop-blur rounded-lg p-6 border border-purple-500/30 mb-6">
+          <h3 className="text-lg font-semibold text-white mb-4">Opsi Obfuscation</h3>
+          <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {[
+              { key: 'stringEncode', label: 'String Encoding', desc: 'Encode semua string' },
+              { key: 'varRename', label: 'Variable Renaming', desc: 'Rename variabel' },
+              { key: 'controlFlow', label: 'Control Flow', desc: 'Obfuscate alur kontrol' },
+              { key: 'antiTamper', label: 'Anti-Tamper', desc: 'Proteksi anti-tamper' },
+              { key: 'compression', label: 'Compression', desc: 'Kompresi kode' }
+            ].map(opt => (
+              <label key={opt.key} className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={options[opt.key]}
+                  onChange={(e) => setOptions({...options, [opt.key]: e.target.checked})}
+                  className="mt-1 w-4 h-4 accent-purple-600"
+                />
+                <div>
+                  <div className="text-white font-medium group-hover:text-purple-300 transition">
+                    {opt.label}
+                  </div>
+                  <div className="text-sm text-purple-400">{opt.desc}</div>
+                </div>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex justify-center">
+          <button
+            onClick={obfuscate}
+            className="px-8 py-3 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold rounded-lg shadow-lg shadow-purple-500/50 transition transform hover:scale-105"
+          >
+            🔒 Obfuscate Code
+          </button>
+        </div>
+
+        <div className="mt-8 bg-slate-800/30 backdrop-blur rounded-lg p-4 border border-purple-500/20">
+          <p className="text-sm text-purple-300 text-center">
+            ⚠️ Disclaimer: Tool ini untuk tujuan edukasi. Pastikan Anda memiliki hak untuk mengobfuscate kode yang Anda gunakan.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LuaObfuscator;
