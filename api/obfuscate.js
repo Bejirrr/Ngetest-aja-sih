@@ -43,7 +43,7 @@ module.exports = async (req, res) => {
   }
 };
 
-// Advanced Obfuscation Engine (KuramaMods Style)
+
 async function advancedObfuscate(code, options = {}) {
   const {
     stringEncode = true,
