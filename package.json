@@ -16,7 +16,7 @@
     "code-protection",
     "security",
   ],
-  "author": "KuramaMods",
+  "author": "Gatau",
   "license": "MIT",
   "engines": {
     "node": ">=14.0.0"
